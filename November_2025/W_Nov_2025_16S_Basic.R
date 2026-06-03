@@ -235,7 +235,36 @@ nov_2025_loc = beta_loc$plot_ordination(plot_color = "Salinity", plot_shape = "L
 
 nov_2025_loc
 
+nov_2025_loc_elips <- beta_loc$plot_ordination(
+  plot_color = "Location",
+  plot_shape = "Salinity",
+  plot_type = "point",
+  point_size = 2
+) +
+  stat_ellipse(
+    aes(group = Location),
+    type = "t",
+    linewidth = 1,
+    linetype = 1
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 18),
+    axis.text.y = element_text(size = 18),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    strip.text = element_text(size = 18),
+    legend.title = element_text(size = 18),
+    legend.text = element_text(size = 18),
+    panel.border = element_rect(colour = "black", fill = NA, size = 1)
+  )
+
+nov_2025_loc_elips
+
 ggsave("Output figures/nov_2025_loc.pdf", plot = nov_2025_loc, device = "pdf", width = 7, 
+       height = 5, units = "in", dpi = 1000)
+
+ggsave("Output figures/nov_2025_loc_elips.pdf", plot = nov_2025_loc_elips, device = "pdf", width = 7, 
        height = 5, units = "in", dpi = 1000)
 
 
