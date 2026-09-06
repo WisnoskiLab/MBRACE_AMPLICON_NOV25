@@ -53,6 +53,7 @@ library(Hmisc)
 library(Biostrings)
 library(meconetcomp)
 library(ggnested)
+library(linkET)
 
 # ---- Package manager ----
 library(BiocManager)
@@ -121,59 +122,8 @@ rownames(env) <- env[, 1]
 
 env = env[ ,-1]
 
-rownames(env)
-
-# Rename variables
-colnames(env) <- c(
-  "Salinity_PSU",
-  "Temperature_C",
-  "pH",
-  "ODO_mg_L",
-  "Conductivity_uS_cm",
-  "TDS_mg_L"
-)
-
-# Check
-head(env)
-str(env)
-
 
 env_nov25_16s <- trans_env$new(dataset = w_nov_2025_rarefied, add_data = env)
-
-env_plot <- env %>%
-  rownames_to_column("SampleID") %>%
-  
-  mutate(
-    Location = case_when(
-      str_detect(SampleID, "_BIL_") ~ "Biloxi Bay",
-      str_detect(SampleID, "_PAS_") ~ "Pascagoula Bay"
-    ),
-    
-    Station = as.numeric(
-      str_extract(SampleID, "(?<=_ST)\\d+")
-    ),
-    
-    Replicate = str_extract(SampleID, "\\d+$")
-  )
-
-env_station <- env_plot %>%
-  group_by(Location, Station) %>%
-  summarise(
-    across(
-      c(
-        Salinity_PSU,
-        Temperature_C,
-        pH,
-        ODO_mg_L,
-        Conductivity_uS_cm,
-        TDS_mg_L
-      ),
-      mean
-    ),
-    .groups = "drop"
-  )
-
-env_station
 
 w_nov_2025_rarefied$cal_abund()
 w_nov_2025_rarefied$cal_alphadiv()
@@ -358,8 +308,147 @@ manova_sal$cal_manova(manova_all = TRUE)
 manova_loc$res_manova
 manova_sal$res_manova
 
+# manova for specified group set: such as "Group + Type"
+manova <- trans_beta$new(dataset = w_nov_2025_rarefied, group = "Location", measure = "bray")
+manova$cal_manova(manova_set = "Location + Salinity")
+manova$res_manova
+
+write.csv(manova$res_manova, "Diversity_Metrics/manaova_all.csv")
 write.csv(manova_loc$res_manova, "Diversity_Metrics/manaova_loc.csv")
 write.csv(manova_sal$res_manova, "Diversity_Metrics/manaova_sal.csv")
+
+############################################################################################
+######  Water variables
+############################################################################################
+
+env_data <- readxl::read_excel("Data files/nov_2025_env_data.xlsx")
+env_nov25_16s <- trans_env$new(dataset = w_nov_2025_rarefied, add_data = env[,1:6])
+
+env_plot <- env_data %>% mutate(
+    Location = case_when( str_detect(`Sample ID`, "_BIL_") ~ "Biloxi Bay", str_detect(`Sample ID`, "_PAS_") ~ "Pascagoula Bay"),
+    Station = as.numeric(str_extract(`Sample ID`, "(?<=_ST)\\d+"))) %>%
+  # Environmental measurements are identical for _01 and _02
+  # so retain one observation per station
+  distinct(Location, Station, .keep_all = TRUE)
+
+env_long <- env_plot %>% dplyr::select(Location, Station, `Salinity (PSU)`, `Temperature (°C)`, pH, `ODO (mg/L)`) %>%
+  tidyr::pivot_longer(cols = -c(Location, Station), names_to = "Variable", values_to = "Value") %>%
+  dplyr::mutate(Variable = factor(Variable, levels = c("Salinity (PSU)", "Temperature (°C)", "pH", "ODO (mg/L)"),
+                                  labels = c("Salinity (PSU)", "Temperature (°C)", "pH", "Dissolved oxygen (mg/L)")))
+
+env_var_plot = ggplot(env_long, aes(x = Station, y = Value, color = Location, group = Location)) +
+  geom_line(linewidth = 1) + geom_point(size = 3) +
+  facet_wrap(~Variable, scales = "free_y", ncol = 2) +
+  scale_x_continuous(breaks = 1:10, labels = paste0("ST", 1:10)) +
+  scale_color_manual(values = location_colors) +
+  labs(x = "Station", y = NULL, color = NULL) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 15),
+    axis.text.y = element_text(size = 15),
+    axis.title.x = element_text(size = 15),
+    axis.title.y = element_text(size = 15),
+    strip.text = element_text(size = 15),
+    legend.title = element_text(size = 15),
+    legend.text = element_text(size = 15),
+    panel.border = element_rect(colour = "black", fill = NA, size = 1)
+  )
+
+ggsave("RDA-Analysis/env_varible_plot.pdf", env_var_plot, w = 10, h = 7, dpi = 1000)
+
+# use bray-curtis distance for dbRDA
+env_nov25_16s$cal_ordination(method = "dbRDA", use_measure = "bray")
+
+# show the orginal results
+env_nov25_16s$trans_ordination()
+env_nov25_16s$plot_ordination(plot_color = "Location")
+
+# the main results of RDA are related with the projection and angles between arrows
+# adjust the length of the arrows to show them better
+env_nov25_16s$trans_ordination(adjust_arrow_length = TRUE, max_perc_env = 0.5)
+
+# t1$res_rda_trans is the transformed result for plotting
+dbrda_plot= env_nov25_16s$plot_ordination(plot_color = "Location", plot_shape = "Salinity")
+
+ggsave("RDA-Analysis/db-rda_plot.pdf", dbrda_plot, w= 7, height = 7, dpi = 1000)
+
+env_nov25_16s$cal_ordination_anova()
+env_nov25_16s$cal_ordination_envfit()
+
+env_nov25_16s$res_ordination_envfit
+
+# use Genus
+env_nov25_16s$cal_ordination(method = "RDA", taxa_level = "Genus")
+# select 10 features and adjust the arrow length
+env_nov25_16s$trans_ordination(show_taxa = 10, adjust_arrow_length = TRUE, max_perc_env = 1.5, max_perc_tax = 1.5, min_perc_env = 0.2, min_perc_tax = 0.2)
+# t1$res_rda_trans is the transformed result for plot
+rda_plot = env_nov25_16s$plot_ordination(plot_color = "Location", plot_shape = "Salinity")
+
+ggsave("RDA-Analysis/rda_plot.pdf", rda_plot, w= 7, height = 7, dpi = 1000)
+
+
+## Mantel tests
+
+env_nov25_16s$cal_mantel(use_measure = "bray")
+
+# return t1$res_mantel
+head(env_nov25_16s$res_mantel)
+
+env_use <- env_nov25_16s$data_env %>% dplyr::select(`Salinity (PSU)`, `Temperature (°C)`, pH, `ODO (mg/L)`)
+
+# Overall trans_env object for environmental correlation matrix
+t_env <- trans_env$new(dataset = w_nov_2025_rarefied, add_data = env_use, standardize = TRUE)
+
+# Identify top 10 abundant phyla
+top_phyla <- w_nov_2025_rarefied$tax_table %>%
+  dplyr::mutate(Abundance = rowSums(w_nov_2025_rarefied$otu_table[rownames(.), , drop = FALSE])) %>%
+  dplyr::group_by(Phylum) %>% dplyr::summarise(Abundance = sum(Abundance), .groups = "drop") %>%
+  dplyr::filter(!is.na(Phylum), Phylum != "", Phylum != "p__") %>% dplyr::arrange(desc(Abundance))
+
+phyla <- top_phyla$Phylum[1:10]
+phyla
+
+# Mantel test separately for each phylum
+plot_table <- lapply(phyla, function(ph){
+  d <- clone(w_nov_2025_rarefied); taxa <- rownames(d$tax_table)[d$tax_table$Phylum == ph]
+  if(length(taxa) == 0) return(NULL)
+  d$tax_table <- d$tax_table[taxa, , drop = FALSE]; d$otu_table <- d$otu_table[taxa, , drop = FALSE]; d$phylo_tree <- NULL
+  d$tidy_dataset(); d$cal_betadiv()
+  te <- trans_env$new(dataset = d, add_data = env_use, standardize = TRUE); te$cal_mantel(use_measure = "bray", partial_mantel = TRUE)
+  x <- data.frame(spec = gsub("^p__", "", ph), te$res_mantel) %>% .[, c(1, 3, 6, 8)]
+  colnames(x) <- c("spec", "env", "r", "p"); x
+}) %>% dplyr::bind_rows() %>%
+  dplyr::mutate(rd = cut(r, breaks = c(-Inf, 0.3, 0.6, Inf), labels = c("< 0.3", "0.3 - 0.6", ">= 0.6")),
+                pd = cut(p, breaks = c(-Inf, 0.01, 0.05, Inf), labels = c("< 0.01", "0.01 - 0.05", ">= 0.05")),
+                spec = factor(spec, levels = rev(gsub("^p__", "", phyla))))
+
+# Check Mantel results
+plot_table
+table(plot_table$spec)
+
+# Mantel + environmental Pearson correlation plot
+g1 <- qcorrplot(correlate(t_env$data_env), type = "upper", diag = FALSE) +
+  geom_square() +
+  geom_mark(sig_thres = 0.05, sig_level = c(0.05, 0.01, 0.001), size = 4) +
+  geom_couple(aes(colour = pd, size = rd), data = plot_table, curvature = nice_curvature()) +
+  scale_fill_gradientn(colours = rev(RColorBrewer::brewer.pal(11, "RdBu")), limits = c(-1, 1)) +
+  scale_size_manual(values = c(0.5, 1.5, 3)) +
+  scale_colour_manual(values = c("#D95F02", "#1B9E77", "#BDBDBD")) +
+  guides(size = guide_legend(title = "Mantel's r", override.aes = list(colour = "grey35"), order = 2),
+         colour = guide_legend(title = "Mantel's p", override.aes = list(size = 2), order = 1),
+         fill = guide_colorbar(title = "Pearson's r", order = 3)) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 15),
+    axis.text.y = element_text(size = 15),
+    axis.title.x = element_text(size = 15),
+    axis.title.y = element_text(size = 15),
+    strip.text = element_text(size = 15),
+    legend.title = element_text(size = 15),
+    legend.text = element_text(size = 15),
+    panel.border = element_rect(colour = "black", fill = NA, size = 1)
+  )
+
+g1
 
 ############################################################################################
 ######  Abundance 
