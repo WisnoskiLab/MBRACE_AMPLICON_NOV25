@@ -1,0 +1,4 @@
+Subcommunity,ASVs,Median_reads,Q1_reads,Q3_reads,Median_samples,One_sample,One_sample_pct,Reads_1_5,Reads_1_5_pct,Reads_1_10,Reads_1_10_pct
+Abundant,50,12373,5482,23434.75,21,9,18,0,0,0,0
+CRT,1440,726,323.75,1310.25,10,170,11.805555555555555,0,0,0,0
+Rare,42833,8,3,27,1,36493,85.19832839166064,17386,40.59019914551864,24398,56.96075455840123
