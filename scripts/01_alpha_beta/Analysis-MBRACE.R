@@ -1,3 +1,4 @@
+# Run from the repository root.
 # ---- Core data handling & manipulation ----
 library(tidyverse)
 
@@ -46,9 +47,9 @@ library(minpack.lm)
 library(Hmisc)
 library(ggpmisc)
 
-dir.create("Output/Alpha", recursive = TRUE, showWarnings = FALSE)
-dir.create("Output/Beta", recursive = TRUE, showWarnings = FALSE)
-dir.create("Output/Tables", recursive = TRUE, showWarnings = FALSE)
+dir.create("results/figures/alpha_diversity", recursive = TRUE, showWarnings = FALSE)
+dir.create("results/figures/beta_diversity", recursive = TRUE, showWarnings = FALSE)
+dir.create("results/tables/alpha_beta", recursive = TRUE, showWarnings = FALSE)
 
 location_colors = c("Biloxi Bay" = "#0072B2", "Pascagoula Bay" = "#E69F00")
 
@@ -56,10 +57,10 @@ group_order = c("Limnetic (0-0.5)", "Oligohaline (0.5-5)", "Mesohaline (5-18)", 
 
 group_colors = setNames(c("#A6E1D4", "#5FADAE", "#2B7BBA", "#0D326A"), group_order)
 
-biom = import_biom("Data files 200_230/w_nov_2025_200-230_feture.biom")
-metadata = import_qiime_sample_data("Data files 200_230/metadata.txt")
-tree = read_tree("Data files 200_230/w_nov_2025_200_230_unrooted-tree.nwk")
-rep_fasta = readDNAStringSet("Data files 200_230/dna-sequences_230_200.fasta", format = "fasta")
+biom = import_biom("data/processed/trimmed_200_230/w_nov_2025_200-230_feture.biom")
+metadata = import_qiime_sample_data("data/processed/trimmed_200_230/metadata.txt")
+tree = read_tree("data/processed/trimmed_200_230/w_nov_2025_200_230_unrooted-tree.nwk")
+rep_fasta = readDNAStringSet("data/processed/trimmed_200_230/dna-sequences_230_200.fasta", format = "fasta")
 
 w_biom = merge_phyloseq(biom, rep_fasta, metadata, tree)
 
@@ -115,7 +116,7 @@ sample_distribution = w_nov_2025_rarefied$sample_table %>%
   count(Location, Group, .drop = FALSE)
 
 print(sample_distribution)
-write_csv(sample_distribution, "Output/Tables/Sample_distribution.csv")
+write_csv(sample_distribution, "results/tables/alpha_beta/Sample_distribution.csv")
 
 
 # Combined
@@ -159,7 +160,7 @@ df_alpha = alpha_combined$data_alpha %>%
          Salinity_PSU = as.numeric(as.character(Salinity_PSU)),
          Measure = factor(Measure, levels = c("Observed", "Shannon", "Chao1")))
 
-write_csv(df_alpha, "Output/Tables/Alpha_diversity_all.csv")
+write_csv(df_alpha, "results/tables/alpha_beta/Alpha_diversity_all.csv")
 
 ############################################################################################
 ###### ALPHA DIVERSITY — OBSERVED RICHNESS ONLY
@@ -189,7 +190,7 @@ alpha_location = ggplot(df_observed, aes(Location, Value, fill = Location)) +
 
 alpha_location
 
-ggsave("Output/Alpha/Observed_combined_bays.pdf", alpha_location, width = 6, height = 5, bg = "white")
+ggsave("results/figures/alpha_diversity/Observed_combined_bays.pdf", alpha_location, width = 6, height = 5, bg = "white")
 
 
 # 2. Salinity groups within each bay
@@ -217,7 +218,7 @@ alpha_salinity = df_observed %>%
 
 alpha_salinity
 
-ggsave("Output/Alpha/Observed_salinity_within_bays.pdf", 
+ggsave("results/figures/alpha_diversity/Observed_salinity_within_bays.pdf", 
        alpha_salinity, width = 10, height = 5, bg = "white")
 
 
@@ -273,7 +274,7 @@ alpha_regression
 
 alpha_regression
 
-ggsave("Output/Alpha/Observed_salinity_regression.pdf", alpha_regression, width = 7, height = 5, bg = "white")
+ggsave("results/figures/alpha_diversity/Observed_salinity_regression.pdf", alpha_regression, width = 7, height = 5, bg = "white")
 
 # 4. Separate regression plots with equation, R², and P-value
 plot_bay_observed = function(bay) {
@@ -309,8 +310,8 @@ alpha_pascagoula_plot = plot_bay_observed("Pascagoula Bay")
 alpha_biloxi_plot
 alpha_pascagoula_plot
 
-ggsave("Output/Alpha/Observed_Biloxi.pdf", alpha_biloxi_plot, width = 6, height = 5, bg = "white")
-ggsave("Output/Alpha/Observed_Pascagoula.pdf", alpha_pascagoula_plot, width = 6, height = 5, bg = "white")
+ggsave("results/figures/alpha_diversity/Observed_Biloxi.pdf", alpha_biloxi_plot, width = 6, height = 5, bg = "white")
+ggsave("results/figures/alpha_diversity/Observed_Pascagoula.pdf", alpha_pascagoula_plot, width = 6, height = 5, bg = "white")
 
 ##----------------------------------------------------------------------------------------------------------------
 
@@ -370,7 +371,7 @@ nmds_combined = beta_combined$plot_ordination(
 
 nmds_combined
 
-ggsave("Output/Beta/NMDS_combined.pdf", nmds_combined, width = 7.5, height = 5.5, bg = "white")
+ggsave("results/figures/beta_diversity/NMDS_combined.pdf", nmds_combined, width = 7.5, height = 5.5, bg = "white")
 
 # Extract stress value from the NMDS result
 # Try this first:
@@ -419,7 +420,7 @@ nmds_biloxi = nmds_biloxi +
 
 nmds_biloxi
 
-ggsave("Output/Beta/NMDS_Biloxi.pdf", nmds_biloxi, width = 7, height = 5.5, dpi = 1000)
+ggsave("results/figures/beta_diversity/NMDS_Biloxi.pdf", nmds_biloxi, width = 7, height = 5.5, dpi = 1000)
 
 nmds_pascagoula = beta_pascagoula$plot_ordination(
   plot_color = "Group",
@@ -460,4 +461,4 @@ nmds_pascagoula = nmds_pascagoula +
 
 nmds_pascagoula
 
-ggsave("Output/Beta/NMDS_Pascagoula.pdf", nmds_pascagoula, width = 7, height = 5.5, dpi = 1000)
+ggsave("results/figures/beta_diversity/NMDS_Pascagoula.pdf", nmds_pascagoula, width = 7, height = 5.5, dpi = 1000)

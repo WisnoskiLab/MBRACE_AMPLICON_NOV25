@@ -1,3 +1,4 @@
+# Run from repository root; review remaining output paths before rerunning.
 # ---- Core data handling / plotting ----
 library(tidyverse)
 library(magrittr)
@@ -49,10 +50,10 @@ subcommunity_colors <- c("Abundant" = "#F8766D", "CRT" = "#00BA38", "Rare" = "#6
 
 ##### Importing files ########
 
-biom = import_biom("Data files 200_230/w_nov_2025_200-230_feture.biom")
-metadata = import_qiime_sample_data("Data files 200_230/metadata.txt")
-tree = read_tree("Data files 200_230/w_nov_2025_200_230_unrooted-tree.nwk")
-rep_fasta = readDNAStringSet("Data files 200_230/dna-sequences_230_200.fasta", format = "fasta")
+biom = import_biom("data/processed/trimmed_200_230/w_nov_2025_200-230_feture.biom")
+metadata = import_qiime_sample_data("data/processed/trimmed_200_230/metadata.txt")
+tree = read_tree("data/processed/trimmed_200_230/w_nov_2025_200_230_unrooted-tree.nwk")
+rep_fasta = readDNAStringSet("data/processed/trimmed_200_230/dna-sequences_230_200.fasta", format = "fasta")
 
 w_biom = merge_phyloseq(biom, rep_fasta, metadata, tree)
 
@@ -318,7 +319,7 @@ ggsave("p_phylum.pdf", p_phylum, width = 15, height = 8)
 # Conductivity/TDS excluded here because of redundancy with salinity.
 # Modify name aliases only if the workbook uses different column names.
 
-env <- readxl::read_excel ("Data files/nov_2025_env_data copy.xlsx") %>% as.data.frame()
+env <- readxl::read_excel ("data/metadata/nov_2025_env_data_copy.xlsx") %>% as.data.frame()
 
 rownames(env) <- env[, 1]
 
@@ -356,7 +357,7 @@ stopifnot(!anyNA(env_station[, env_vars]))
 # Transect_km is cumulative distance from ST1 using station-ordered segments.
 # It does NOT yet represent bends between neighboring stations: update later
 # using a map-traced channel polyline if this matters to final inference.
-station_coords = read_csv("Data files/station_transect_distances.csv", show_col_types = FALSE) %>%
+station_coords = read_csv("data/metadata/station_transect_distances.csv", show_col_types = FALSE) %>%
   select(Location, Station, StationID, Latitude, Longitude, Segment_km, Transect_km) %>%
   distinct() %>% arrange(Location, Station)
 
