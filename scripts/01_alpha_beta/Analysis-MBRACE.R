@@ -58,7 +58,7 @@ group_order = c("Limnetic (0-0.5)", "Oligohaline (0.5-5)", "Mesohaline (5-18)", 
 group_colors = setNames(c("#A6E1D4", "#5FADAE", "#2B7BBA", "#0D326A"), group_order)
 
 biom = import_biom("data/processed/trimmed_200_230/w_nov_2025_200-230_feture.biom")
-metadata = import_qiime_sample_data("data/processed/trimmed_200_230/metadata.txt")
+metadata = import_qiime_sample_data("data/metadata/metadata_original.txt")
 tree = read_tree("data/processed/trimmed_200_230/w_nov_2025_200_230_unrooted-tree.nwk")
 rep_fasta = readDNAStringSet("data/processed/trimmed_200_230/dna-sequences_230_200.fasta", format = "fasta")
 
