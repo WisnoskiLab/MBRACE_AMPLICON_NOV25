@@ -1,4 +1,16 @@
-.Rproj.user
+.Rproj.user/
 .Rhistory
 .RData
 .Ruserdata
+.DS_Store
+**/.DS_Store
+.Renviron
+.env
+.env.*
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+*.qza
+*.qzv
+*.tmp
